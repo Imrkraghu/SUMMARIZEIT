@@ -1,0 +1,112 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SummarizeIT - Audio Summary</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        body { background: #fefefe; color: #212121; padding-top: 60px; }
+        .btn-record { background-color: #f44336; border: none; padding: 12px 30px; font-size: 18px; }
+        .btn-record:hover { background-color: #c62828; }
+        .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .card-header { background: #f44336; color: white; font-weight: bold; }
+        .summary-box { background: #f8f8f8; padding: 15px; border-left: 4px solid #f44336; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="text-center mb-4 text-danger">SummarizeIT</h1>
+
+    <!-- Record Button -->
+    <div class="text-center mb-5">
+        <button id="recordBtn" class="btn btn-record">🎙️ Start Recording</button>
+    </div>
+
+    <!-- Transcription -->
+    <div class="card mb-4">
+        <div class="card-header">📝 Transcribed Text</div>
+        <div class="card-body" id="transcriptionContainer">
+            <p class="text-muted">No transcription yet.</p>
+        </div>
+    </div>
+
+    <!-- Keywords -->
+    <div class="card mb-4">
+        <div class="card-header">🔍 Extracted Keywords</div>
+        <div class="card-body" id="keywordsContainer">
+            <p class="text-muted">No keywords extracted yet.</p>
+        </div>
+    </div>
+
+    <!-- Summaries -->
+    <div class="card mb-4">
+        <div class="card-header">🧠 Keyword Summaries</div>
+        <div class="card-body" id="summariesContainer">
+            <p class="text-muted">No summaries available.</p>
+        </div>
+    </div>
+</div>
+
+<footer class="text-center text-muted mt-5">
+    <p>Powered by <a href="https://github.com/Imrkraghu/" target="_blank">imrkraghu</a></p>
+</footer>
+
+<script>
+document.getElementById("recordBtn").addEventListener("click", function () {
+    const transcriptionEl = document.getElementById("transcriptionContainer");
+    const keywordEl = document.getElementById("keywordsContainer");
+    const summaryEl = document.getElementById("summariesContainer");
+    const recordBtn = document.getElementById("recordBtn");
+
+    // Set loading messages
+    recordBtn.innerHTML = `<button id="recordBtn" class="btn btn-record"> Running</button>`;
+    transcriptionEl.innerHTML = `<p class="text-muted">⏳ Transcribing audio...</p>`;
+    keywordEl.innerHTML = `<p class="text-muted">⏳ Extracting keywords...</p>`;
+    summaryEl.innerHTML = `<p class="text-muted">⏳ Generating summaries...</p>`;
+
+    fetch("{% url 'record_audio' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        recordBtn.innerHTML = `<button id="recordBtn" class="btn btn-record">🎙️ Start Recording</button>`;
+        // Update transcription
+        transcriptionEl.innerHTML = `<pre class="mb-0">${data.transcription}</pre>`;
+
+        // Update keywords
+        if (data.keywords && data.keywords.length > 0) {
+            keywordEl.innerHTML = `<ul class="list-group list-group-flush">` +
+                data.keywords.map(kw => `<li class="list-group-item">${kw}</li>`).join('') +
+                `</ul>`;
+        } else {
+            keywordEl.innerHTML = `<p class="text-muted">No keywords found.</p>`;
+        }
+
+        // Update summaries
+        if (data.summaries && data.summaries.length > 0) {
+            summaryEl.innerHTML = data.summaries.map(s => `
+                <div class="summary-box">
+                    <strong>${s.keyword}</strong>: ${s.text}
+                </div>
+            `).join('');
+        } else {
+            summaryEl.innerHTML = `<p class="text-muted">No summaries generated.</p>`;
+        }
+    })
+    .catch(err => {
+        alert("Something went wrong. Please try again.");
+        console.error(err);
+    });
+});
+</script>
+
+</body>
+</html>
