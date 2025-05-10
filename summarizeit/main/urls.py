@@ -10,5 +10,4 @@ urlpatterns = [
     path("team/", views.team, name="team"),
     path("about/", views.about, name="about"),
     path("contact/", views.contact, name="contact"),
-     path('fetch/', views.fetch_data, name='fetch_data'),  # ← make sure this line exists
 ]
