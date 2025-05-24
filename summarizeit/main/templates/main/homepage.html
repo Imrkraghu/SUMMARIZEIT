@@ -35,12 +35,20 @@
 <div class="w3-top w3-red">
     <div class="w3-bar w3-card w3-left-align w3-large">
         <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large w3-red" href="javascript:void(0);" onclick="toggleMenu()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
-        <a href="{% url 'SummarizeIT' %}" class="w3-bar-item w3-button w3-padding-large w3-white">Home</a>
+        <a href="{% url 'SummarizeIT' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Home</a>
         <a href="{% url 'about' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">About Us</a>
         <a href="{% url 'team' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Team</a>
         <a href="{% url 'projects' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Projects</a>
         <a href="{% url 'contact' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Contact</a>
     </div>
+    
+ <!-- Navbar on small screens -->
+ <div id="navDemo" class="w3-bar-block w3-white w3-hide w3-hide-large w3-hide-medium w3-large">
+    <a href="{% url 'about' %}" class="w3-bar-item w3-button w3-padding-large">About Us</a>
+    <a href="{% url 'team' %}" class="w3-bar-item w3-button w3-padding-large">Team</a>
+    <a href="{% url 'projects' %}" class="w3-bar-item w3-button w3-padding-large">Projects</a>
+    <a href="{% url 'contact' %}" class="w3-bar-item w3-button w3-padding-large">Contact</a>
+</div>
 </div>
 
 <!-- Header -->
@@ -54,9 +62,10 @@
 <div class="w3-row-padding w3-padding-64 w3-container" id="about">
     <div class="w3-content">
         <div class="w3-twothird">
-            <h1>About Us</h1>
-            <h5 class="w3-padding-32">SummarizeIT is an advanced AI-powered system that converts conversations into structured summaries.</h5>
-            <p class="w3-text-grey">We use state-of-the-art speech recognition, NLP models, and machine learning to deliver accurate and contextual summaries, transforming spoken content into actionable insights.</p>
+            <h1>What is SummarizeIT ?</h1>
+            <h5 class="w3-padding-32">SummarizeIT is an advanced AI-powered platform that converts conversations into structured summaries.</h5>
+            <p class="w3-text-grey">We use various technologies as <b>Speech Recognition</b>, <b>NLP</b> , and <b>Machine Learning</b> to deliver accurate and contextual summaries, transforming spoken content into actionable insights.</p>
+            <p class="w3-text-grey">So one never feels out of the conversation, we revolutionasize the way you gather knowledge instead of long and big paragraphs we provide contextual and shorter summaries</p>
         </div>
         <div class="w3-third w3-center">
             <i class="fa fa-lightbulb-o w3-padding-64 w3-text-red"></i>
@@ -71,18 +80,23 @@
             <i class="fa fa-users w3-padding-64 w3-text-red"></i>
         </div>
         <div class="w3-twothird">
-            <h1>Meet Our Team</h1>
-            <h5 class="w3-padding-32">We are AI engineers, data scientists, and NLP specialists committed to advancing speech-to-text and AI-powered summarization technologies.</h5>
+            <h1>What does it do ?</h1>
+            <h5 class="w3-padding-32">SummarizeIT records the conversations in realtime and convert them into realtime insights</h5>
+            <p class="w3-text-grey">Ever stuck in a conversation where the people arround you are talking about something and you have no idea what it is, here comes SummarizeIT to the rescue</p>
+            <p class="w3-text-grey">How does it help? well you simply just run it once and it will automatically fetch the insights based on its rich dataset of keywords which may be a little too hard or not daily used type helping you so when its your turn you have something to stay in the conversation </p>
+            <p class="w3-text-grey">It generates the summary of the kewords which are used in the conversation which the user might be not aware of giving them contextual result about it and keeping them in the conversation</p>
         </div>
     </div>
 </div>
 
-<!-- Projects Section -->
+<!-- Use Cases where it can be used -->
 <div class="w3-row-padding w3-padding-64 w3-container" id="projects">
     <div class="w3-content">
         <div class="w3-twothird">
-            <h1>Our AI-ML Projects</h1>
-            <h5 class="w3-padding-32">Innovative solutions from text summarization to AI-driven content generation.</h5>
+            <h1>Where it can be used ?</h1>
+            <h5 class="w3-padding-32">SummarizeIT can be useful in meetings, lectures, conferences, discutions, interviews</h5>
+            <p class="w3-text-grey">Suppose in an interview you are asking the interview to present what he did in his previous organisation or he is explaining his project to you</p>
+            <p class="w3-text-grey">There can be many terms you are going to hear for the first time and by using SummarizeIT there instead summmaries can be generated so that you can better understand and counter question on that topic </p>
         </div>
         <div class="w3-third w3-center">
             <i class="fa fa-gear w3-padding-64 w3-text-red"></i>

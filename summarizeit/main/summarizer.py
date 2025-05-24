@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from transformers import BertTokenizer, BertModel, BartForConditionalGeneration, BartTokenizer as BARTTokenizer
+import time
 
 # Define custom NLTK data path
 NLTK_CUSTOM_PATH = 'nltk_resources'
@@ -30,7 +31,43 @@ for resource in ['punkt', 'stopwords']:
         nltk.download(resource, download_dir=NLTK_CUSTOM_PATH)
 
 # 1. Record Audio
-def record_audio_to_file(OUTPUT_FILENAME="recorded_audio.wav", duration=10):
+# def record_audio_to_file(OUTPUT_FILENAME="recorded_audio.wav", duration=10):
+#     FORMAT = pyaudio.paInt16
+#     CHANNELS = 1
+#     RATE = 44100
+#     CHUNK = 1024
+
+#     try:
+#         audio = pyaudio.PyAudio()
+#         stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE,
+#                             input=True, frames_per_buffer=CHUNK)
+#         print("Recording...")
+
+#         frames = [stream.read(CHUNK) for _ in range(0, int(RATE / CHUNK * duration))]
+
+#         print("Recording finished.")
+#         stream.stop_stream()
+#         stream.close()
+#         audio.terminate()
+
+#         with wave.open(OUTPUT_FILENAME, 'wb') as wf:
+#             wf.setnchannels(CHANNELS)
+#             wf.setsampwidth(audio.get_sample_size(FORMAT))
+#             wf.setframerate(RATE)
+#             wf.writeframes(b''.join(frames))
+
+#         return OUTPUT_FILENAME
+#     except OSError as e:
+#         print(f"OSError: {e}")
+#         return None
+
+# this is a test trial for the new stop fucntion for manual recording more than 10 seconds 
+# Global flag to control recording externally
+recording_active = True
+
+def record_audio_to_file(OUTPUT_FILENAME="recorded_audio.wav"):
+    global recording_active
+
     FORMAT = pyaudio.paInt16
     CHANNELS = 1
     RATE = 44100
@@ -42,7 +79,11 @@ def record_audio_to_file(OUTPUT_FILENAME="recorded_audio.wav", duration=10):
                             input=True, frames_per_buffer=CHUNK)
         print("Recording...")
 
-        frames = [stream.read(CHUNK) for _ in range(0, int(RATE / CHUNK * duration))]
+        frames = []
+        while recording_active:
+            data = stream.read(CHUNK)
+            frames.append(data)
+            time.sleep(0.01)  # Give CPU a tiny break
 
         print("Recording finished.")
         stream.stop_stream()
@@ -66,17 +107,17 @@ def transcribe_audio(OUTPUT_FILENAME="recorded_audio.wav"):
     with sr.AudioFile(OUTPUT_FILENAME) as source:
         audio = recognizer.record(source)
 
-        try:
-            text = recognizer.recognize_google(audio)
-            print("Transcription:", text)
-            with open("transcription.txt", "w") as f:
-                f.write(text)
-            return text
-        except sr.UnknownValueError:
-            print("Speech Recognition could not understand the audio.")
-        except sr.RequestError as e:
-            print(f"Could not request results; {e}")
-        return ""
+    try:
+        text = recognizer.recognize_google(audio)
+        print("Transcription:", text)
+        with open("transcription.txt", "w") as f:
+            f.write(text)
+        return text
+    except sr.UnknownValueError:
+        print("Speech Recognition could not understand the audio.")
+    except sr.RequestError as e:
+        print(f"Could not request results; {e}")
+    return ""
 
 # 3. Extract Keywords from Transcription
 def extract_keywords_from_text():
@@ -140,8 +181,7 @@ def fetch_summary_for_keyword(keyword, model, tokenizer):
         soup = BeautifulSoup(response.content, "html.parser")
         paragraphs = soup.find_all("p")
         extracted_text = " ".join([p.get_text() for p in paragraphs]).strip()
-        # only taking first 500 words
-        extracted_text = extracted_text[:500]
+        extracted_text = extracted_text[:500]  # Only take the first 500 characters
         return generate_summary(extracted_text, model, tokenizer)
     except Exception as e:
         print(f"Failed to summarize {keyword}: {e}")
@@ -151,24 +191,25 @@ def fetch_summary_for_keyword(keyword, model, tokenizer):
 def run_summarizer_pipeline():
     summaries = []
 
-    # Step 1
+    # Step 1: Record
     audio_path = record_audio_to_file()
     if not audio_path:
         return None, [], []
 
-    # Step 2
+    # Step 2: Transcribe
     transcription = transcribe_audio(audio_path)
 
-    # Step 3
+    # Step 3: Extract Keywords
     keywords = extract_keywords_from_text()
 
-    # Step 4
+    # Step 4: Filter Keywords
     filtered_keywords = extract_valid_keywords()
 
-    # Step 5
+    # Step 5: Load BART model
     bart_model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
     bart_tokenizer = BARTTokenizer.from_pretrained('facebook/bart-large-cnn')
 
+    # Step 6: Fetch and summarize content
     for keyword in filtered_keywords:
         summary = fetch_summary_for_keyword(keyword, bart_model, bart_tokenizer)
         summaries.append({'keyword': keyword, 'text': summary})
@@ -176,6 +217,6 @@ def run_summarizer_pipeline():
 
     return transcription, filtered_keywords, summaries
 
-# Run pipeline
+# Entry Point
 if __name__ == "__main__":
     transcription, keywords, summaries = run_summarizer_pipeline()

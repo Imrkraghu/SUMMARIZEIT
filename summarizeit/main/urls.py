@@ -10,4 +10,5 @@ urlpatterns = [
     path("team/", views.team, name="team"),
     path("about/", views.about, name="about"),
     path("contact/", views.contact, name="contact"),
+    path('stop/', views.stop_recording, name='stop_recording'),
 ]
