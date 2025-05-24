@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.core.cache import cache
+import time
 
 from .summarizer import run_summarizer_pipeline, record_audio_to_file
 
@@ -30,24 +31,18 @@ def record_audio(request):
 
 @csrf_exempt
 @require_POST
+
 def stop_recording(request):
-    """Stop recording and run the summarizer pipeline."""
-    cache.set("recording_active", False)
-    try:
+    if request.method == 'POST':
+        cache.set("recording_active", False)  # STOP RECORDING
+        time.sleep(1.0)  # give it a moment to finish writing the file
         transcription, keywords, summaries = run_summarizer_pipeline()
-
-        # Save results to session
-        request.session['transcription'] = transcription
-        request.session['keywords'] = keywords
-        request.session['summaries'] = summaries
-
         return JsonResponse({
-            'transcription': transcription,
-            'keywords': keywords,
-            'summaries': summaries
+            "transcription": transcription,
+            "keywords": keywords,
+            "summaries": summaries,
         })
-    except Exception as e:
-        return JsonResponse({'error': str(e)})
+
 
 def SummarizeIT(request):
     return render(request, 'main/summarizeIT.html')
