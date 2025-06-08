@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,7 +51,7 @@
         </div>
         <div class="w3-twothird">
             <h1>Our Team</h1>
-            <h5 class="w3-padding-32">Meet the brilliant minds behind AI-ML. Our team consists of experts in AI, ML, data science, and engineering, all working together to push the boundaries of technology.</h5>
+            <h5 class="w3-padding-32">Meet the brilliant minds behind AI-ML. Our team consists of experts in AI, ML, engineering, full stack developement all working together to push the boundaries of technology.</h5>
             <p class="w3-text-grey">Our diverse team brings together a wealth of knowledge and experience, enabling us to tackle complex challenges and create innovative solutions.</p>
         </div>
     </div>
@@ -59,43 +60,33 @@
 <!-- Team Members -->
 <div class="w3-row-padding w3-padding-64 w3-container">
     <div class="w3-content">
-        <div class="w3-quarter w3-margin-bottom">
+        <div class="w3-quarter w3-margin-bottom" >
             <div class="w3-card w3-white">
-                <img src="path/to/member1.jpg" alt="Member1" style="width:100%">
+                <img src="{% static 'images/member_1.jpeg' %}" alt="Member1" style="width:100%">
                 <div class="w3-container">
-                    <h3>John Doe</h3>
+                    <h3>Rohit Kumar</h3>
                     <p class="w3-opacity">AI Specialist</p>
-                    <p>John is an AI specialist with over 10 years of experience in machine learning and data science.</p>
+                    <p>AI specialist working on the backend and integration.</p>
                 </div>
             </div>
         </div>
-        <div class="w3-quarter w3-margin-bottom">
+        <div class="w3-quarter w3-margin-bottom" style="margin-left: 100px;">
             <div class="w3-card w3-white">
-                <img src="path/to/member2.jpg" alt="Member2" style="width:100%">
+                <img src="{% static 'images/member_2.jpg' %}" alt="Member2" style="width:100%">
                 <div class="w3-container">
-                    <h3>Jane Smith</h3>
-                    <p class="w3-opacity">ML Engineer</p>
-                    <p>Jane is an ML engineer who has worked on various high-profile projects and brings a wealth of knowledge to the team.</p>
+                    <h3>Punit Thakur</h3>
+                    <p class="w3-opacity">Full Stack Developer</p>
+                    <p>Working on the seemless working of the Web Application</p>
                 </div>
             </div>
         </div>
-        <div class="w3-quarter w3-margin-bottom">
+        <div class="w3-quarter w3-margin-bottom" style="margin-left: 100px;">
             <div class="w3-card w3-white">
-                <img src="path/to/member3.jpg" alt="Member3" style="width:100%">
+                <img src="{% static 'images/member_3.jpg' %}" alt="Member3" style="width:100%">
                 <div class="w3-container">
-                    <h3>Mike Johnson</h3>
-                    <p class="w3-opacity">Data Scientist</p>
-                    <p>Mike is a data scientist with a keen interest in data analytics and predictive modeling.</p>
-                </div>
-            </div>
-        </div>
-        <div class="w3-quarter w3-margin-bottom">
-            <div class="w3-card w3-white">
-                <img src="path/to/member4.jpg" alt="Member4" style="width:100%">
-                <div class="w3-container">
-                    <h3>Emily Davis</h3>
-                    <p class="w3-opacity">Project Manager</p>
-                    <p>Emily is the project manager who ensures that all projects run smoothly and efficiently.</p>
+                    <h3>Gourav Shekhar</h3>
+                    <p class="w3-opacity">Software Developer</p>
+                    <p>responsible for the integration and finetuning the dataset </p>
                 </div>
             </div>
         </div>

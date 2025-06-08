@@ -13,9 +13,11 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from transformers import BertTokenizer, BertModel, BartForConditionalGeneration, BartTokenizer as BARTTokenizer
 from django.core.cache import cache
+from django.conf import settings
 
 # NLTK Setup
-NLTK_CUSTOM_PATH = 'nltk_resources'
+
+NLTK_CUSTOM_PATH = os.path.join(settings.BASE_DIR, 'nltk_resources')
 os.makedirs(NLTK_CUSTOM_PATH, exist_ok=True)
 nltk.data.path.append(NLTK_CUSTOM_PATH)
 
@@ -31,7 +33,7 @@ for resource in ['punkt', 'stopwords']:
         nltk.download(resource, download_dir=NLTK_CUSTOM_PATH)
 
 # Record Audio
-def record_audio_to_file(OUTPUT_FILENAME="recorded_audio.wav"):
+def record_audio_to_file(OUTPUT_FILENAME=os.path.join(settings.MEDIA_ROOT, "recordings", "recorded_audio.wav")):
     FORMAT = pyaudio.paInt16
     CHANNELS = 1
     RATE = 44100
@@ -74,7 +76,7 @@ def transcribe_audio(OUTPUT_FILENAME="recorded_audio.wav"):
     try:
         text = recognizer.recognize_google(audio)
         print("Transcription:", text)
-        with open("transcription.txt", "w") as f:
+        with open(os.path.join(settings.MEDIA_ROOT, "transcriptions", "transcription.txt"),"w") as f:
             f.write(text)
         return text
     except sr.UnknownValueError:
@@ -85,7 +87,7 @@ def transcribe_audio(OUTPUT_FILENAME="recorded_audio.wav"):
 
 # Extract Keywords
 def extract_keywords_from_text():
-    with open("transcription.txt", "r") as file:
+    with open(os.path.join(settings.MEDIA_ROOT, "transcriptions", "transcription.txt"),"r") as file:
         text = file.read()
 
     words = word_tokenize(text)
@@ -95,7 +97,7 @@ def extract_keywords_from_text():
     word_freq = Counter(filtered_words)
     keywords = [kw for kw, _ in word_freq.most_common(10)]
 
-    with open("keywords.txt", "w") as file:
+    with open(os.path.join(settings.MEDIA_ROOT, "keywords", "keywords.txt"),"w") as file:
         for keyword in keywords:
             file.write(f"{keyword}\n")
 
@@ -104,10 +106,11 @@ def extract_keywords_from_text():
 
 # Filter Keywords
 def extract_valid_keywords():
-    with open("keywords.txt", "r") as file:
+    with open(os.path.join(settings.MEDIA_ROOT, "keywords", "keywords.txt"), "r") as file:
         keywords = [kw.strip() for kw in file.readlines()]
-
-    df = pd.read_csv("dataset.csv")
+    
+    dataset_path = os.path.join(settings.BASE_DIR, 'main', 'data', 'dataset.csv')
+    df = pd.read_csv(dataset_path)
     valid_set = set()
     for column in df.columns:
         valid_set.update(df[column].dropna().str.lower().str.strip().tolist())
@@ -139,6 +142,10 @@ def fetch_summary_for_keyword(keyword, model, tokenizer):
 
 # Main Pipeline
 def run_summarizer_pipeline():
+    # this will ensure that these folder exist and if not create at the runtime
+    for folder in ["recordings", "transcriptions", "keywords"]:
+        os.makedirs(os.path.join(settings.MEDIA_ROOT, folder), exist_ok=True)
+
     summaries = []
 
     audio_path = "recorded_audio.wav"
