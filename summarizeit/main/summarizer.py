@@ -15,6 +15,9 @@ from transformers import BertTokenizer, BertModel, BartForConditionalGeneration,
 from django.core.cache import cache
 from django.conf import settings
 
+import threading
+import queue
+
 # NLTK Setup
 
 NLTK_CUSTOM_PATH = os.path.join(settings.BASE_DIR, 'nltk_resources')
@@ -141,7 +144,7 @@ def fetch_summary_for_keyword(keyword, model, tokenizer):
         return "Summary unavailable."
 
 # Main Pipeline
-def run_summarizer_pipeline():
+def run_summarizer_pipeline(results):
     # this will ensure that these folder exist and if not create at the runtime
     for folder in ["recordings", "transcriptions", "keywords"]:
         os.makedirs(os.path.join(settings.MEDIA_ROOT, folder), exist_ok=True)
@@ -167,7 +170,11 @@ def run_summarizer_pipeline():
         summaries.append({'keyword': keyword, 'text': summary})
         print(f"\nSummary for '{keyword}':\n{summary}\n")
 
-    return transcription, filtered_keywords, summaries
+    # return transcription, filtered_keywords, summaries
+    # this is a test code you can remove this part
+    results.put(transcription)
+    results.put(keywords)
+    results.put(summaries)
 
 # Test Entry
 if __name__ == "__main__":
