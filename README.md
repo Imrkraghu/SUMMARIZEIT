@@ -46,6 +46,8 @@
 3. **Install Dependencies**:
 
    ```bash
+   sudo apt-get update
+   sudo apt-get install portaudio19-dev python3-dev
    pip install -r requirements.txt
    ```
 
