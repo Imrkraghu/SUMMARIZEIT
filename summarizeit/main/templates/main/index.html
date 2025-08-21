@@ -24,6 +24,40 @@
             color: white !important;
             transform: scale(1.05);
         }
+        .summary-box {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #f44336;
+            background-color: #f9f9f9;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-recording {
+            background-color: #ff4444;
+            animation: pulse 1.5s infinite;
+        }
+        .status-idle {
+            background-color: #44ff44;
+        }
+        .status-processing {
+            background-color: #ffaa44;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .processing-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -52,21 +86,49 @@
 <header class="w3-container w3-red w3-center" style="padding:150px 16px;">
     <h1 class="w3-margin w3-jumbo">SummarizeIT</h1>
     <p class="w3-xlarge">Record - Transcribe - Summarize</p>
-    <button id="recordBtn" class="w3-button w3-black w3-padding-large w3-large w3-margin-top">🎙️ Start Recording</button>
+    <div class="w3-margin-top">
+        <button id="recordBtn" class="w3-button w3-black w3-padding-large w3-large w3-margin-right">
+            🎙️ Start Recording
+        </button>
+        <div id="statusIndicator" class="w3-margin-top">
+            <span class="status-indicator status-idle"></span>
+            <span id="statusText">Ready to record</span>
+        </div>
+        <div id="processingInfo" class="processing-info" style="display: none;">
+            <small>Processing threads: <span id="threadCount">0</span> | Queue size: <span id="queueSize">0</span></small>
+        </div>
+    </div>
 </header>
 
-<div class="container">
+<div class="container mt-4">
+    <!-- Status and Control Panel -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>🎛️ Control Panel</span>
+            <button id="refreshBtn" class="btn btn-sm btn-outline-secondary">Refresh Status</button>
+        </div>
+        <div class="card-body">
+            <div id="systemStatus">
+                <p class="mb-1"><strong>Status:</strong> <span id="systemStatusText">Idle</span></p>
+                <p class="mb-1"><strong>Audio Segments Queued:</strong> <span id="audioQueueSize">0</span></p>
+                <p class="mb-0"><strong>Active Processing Threads:</strong> <span id="activeThreads">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transcribed Text -->
     <div class="card mb-4">
         <div class="card-header">📝 Transcribed Text</div>
         <div class="card-body" id="transcriptionContainer">
             {% if transcription %}
                 <pre class="mb-0">{{ transcription }}</pre>
             {% else %}
-                <p class="text-muted">No transcription yet.</p>
+                <p class="text-muted">No transcription yet. Start recording to see transcribed text appear here.</p>
             {% endif %}
         </div>
     </div>
 
+    <!-- Extracted Keywords -->
     <div class="card mb-4">
         <div class="card-header">🔍 Extracted Keywords</div>
         <div class="card-body" id="keywordsContainer">
@@ -77,11 +139,12 @@
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="text-muted">No keywords extracted yet.</p>
+                <p class="text-muted">No keywords extracted yet. Keywords will appear here after processing.</p>
             {% endif %}
         </div>
     </div>
 
+    <!-- Keyword Summaries -->
     <div class="card mb-4">
         <div class="card-header">🧠 Keyword Summaries</div>
         <div class="card-body" id="summariesContainer">
@@ -92,18 +155,81 @@
                     </div>
                 {% endfor %}
             {% else %}
-                <p class="text-muted">No summaries available.</p>
+                <p class="text-muted">No summaries available yet. Summaries will be generated for valid keywords.</p>
             {% endif %}
         </div>
     </div>
 </div>
 
-<footer class="text-center text-muted mt-5">
+<footer class="text-center text-muted mt-5 mb-3">
     <p>Powered by <a href="https://github.com/Imrkraghu/" target="_blank">imrkraghu</a></p>
 </footer>
+
 <script>
 let isRecording = false;
+let statusInterval = null;
 
+// Update system status periodically
+function updateStatus() {
+    fetch('/get_status/', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const statusIndicator = document.querySelector('.status-indicator');
+        const statusText = document.getElementById('statusText');
+        const processingInfo = document.getElementById('processingInfo');
+        
+        // Update main status
+        if (data.is_recording) {
+            statusIndicator.className = 'status-indicator status-recording';
+            statusText.textContent = 'Recording...';
+        } else if (data.queue_size > 0 || data.processing_threads > 0) {
+            statusIndicator.className = 'status-indicator status-processing';
+            statusText.textContent = 'Processing...';
+        } else {
+            statusIndicator.className = 'status-indicator status-idle';
+            statusText.textContent = 'Ready to record';
+        }
+
+        // Update detailed status
+        document.getElementById('systemStatusText').textContent = 
+            data.is_recording ? 'Recording' : (data.queue_size > 0 ? 'Processing' : 'Idle');
+        document.getElementById('audioQueueSize').textContent = data.queue_size;
+        document.getElementById('activeThreads').textContent = data.processing_threads;
+        document.getElementById('threadCount').textContent = data.processing_threads;
+        document.getElementById('queueSize').textContent = data.queue_size;
+
+        // Show/hide processing info
+        if (data.is_recording || data.queue_size > 0 || data.processing_threads > 0) {
+            processingInfo.style.display = 'block';
+        } else {
+            processingInfo.style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching status:', error);
+    });
+}
+
+// Start status updates when recording
+function startStatusUpdates() {
+    if (statusInterval) clearInterval(statusInterval);
+    statusInterval = setInterval(updateStatus, 1000);
+}
+
+// Stop status updates
+function stopStatusUpdates() {
+    if (statusInterval) {
+        clearInterval(statusInterval);
+        statusInterval = null;
+    }
+}
+
+// Main record button event
 document.getElementById("recordBtn").addEventListener("click", function () {
     const recordBtn = this;
     const transcriptionEl = document.getElementById("transcriptionContainer");
@@ -115,42 +241,69 @@ document.getElementById("recordBtn").addEventListener("click", function () {
         isRecording = true;
         recordBtn.innerHTML = "⏹️ Stop Recording";
         recordBtn.classList.add("w3-red");
+        recordBtn.disabled = true;
 
-        transcriptionEl.innerHTML = `<p class="text-muted">⏳ Transcribing audio...</p>`;
+        // Clear previous results and show loading states
+        transcriptionEl.innerHTML = `<p class="text-muted">⏳ Recording and transcribing audio...</p>`;
         keywordEl.innerHTML = `<p class="text-muted">⏳ Extracting keywords...</p>`;
         summaryEl.innerHTML = `<p class="text-muted">⏳ Generating summaries...</p>`;
 
         fetch("{% url 'record_audio' %}", {
             method: "POST",
-            headers: { "X-CSRFToken": "{{ csrf_token }}" }
-        }).catch(err => {
-            alert("Error starting recording.");
+            headers: { 
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            recordBtn.disabled = false;
+            if (data.error) {
+                alert("Start Error: " + data.error);
+                resetUI();
+            } else {
+                startStatusUpdates();
+            }
+        })
+        .catch(err => {
+            alert("Error starting recording: " + err);
             console.error(err);
+            recordBtn.disabled = false;
+            resetUI();
         });
 
     } else {
         // STOP RECORDING
         isRecording = false;
-        recordBtn.innerHTML = "🎙️ Start Recording";
-        recordBtn.classList.remove("w3-red");
         recordBtn.disabled = true;
+        recordBtn.innerHTML = "🔄 Processing...";
 
         fetch("{% url 'stop_recording' %}", {
             method: "POST",
-            headers: { "X-CSRFToken": "{{ csrf_token }}" }
+            headers: { 
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            }
         })
         .then(res => res.json())
         .then(data => {
             recordBtn.disabled = false;
-
+            stopStatusUpdates();
+            
             if (data.error) {
                 alert("Stop Error: " + data.error);
+                resetUI();
                 return;
             }
 
-            transcriptionEl.innerHTML = `<pre class="mb-0">${data.transcription}</pre>`;
+            // Update UI with results
+            if (data.transcription && data.transcription.trim()) {
+                transcriptionEl.innerHTML = `<pre class="mb-0">${data.transcription}</pre>`;
+            } else {
+                transcriptionEl.innerHTML = `<p class="text-muted">No transcription available.</p>`;
+            }
 
-            if (data.keywords?.length) {
+            if (data.keywords && data.keywords.length > 0) {
                 keywordEl.innerHTML = `<ul class="list-group list-group-flush">` +
                     data.keywords.map(kw => `<li class="list-group-item">${kw}</li>`).join('') +
                     `</ul>`;
@@ -158,7 +311,7 @@ document.getElementById("recordBtn").addEventListener("click", function () {
                 keywordEl.innerHTML = `<p class="text-muted">No keywords found.</p>`;
             }
 
-            if (data.summaries?.length) {
+            if (data.summaries && data.summaries.length > 0) {
                 summaryEl.innerHTML = data.summaries.map(s => `
                     <div class="summary-box">
                         <strong>${s.keyword}</strong>: ${s.text}
@@ -167,18 +320,41 @@ document.getElementById("recordBtn").addEventListener("click", function () {
             } else {
                 summaryEl.innerHTML = `<p class="text-muted">No summaries generated.</p>`;
             }
+
+            resetUI();
+            // Final status update
+            updateStatus();
         })
         .catch(err => {
-            alert("Something went wrong while stopping.");
+            alert("Something went wrong while stopping: " + err);
             console.error(err);
             recordBtn.disabled = false;
+            stopStatusUpdates();
+            resetUI();
         });
     }
 });
 
+// Reset UI to initial state
+function resetUI() {
+    const recordBtn = document.getElementById("recordBtn");
+    recordBtn.innerHTML = "🎙️ Start Recording";
+    recordBtn.classList.remove("w3-red");
+    isRecording = false;
+}
+
+// Refresh status manually
+document.getElementById("refreshBtn").addEventListener("click", updateStatus);
+
+// Menu toggle function
 function toggleMenu() {
     document.getElementById("navDemo").classList.toggle("w3-show");
 }
+
+// Initialize status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateStatus();
+});
 </script>
 </body>
 </html>
