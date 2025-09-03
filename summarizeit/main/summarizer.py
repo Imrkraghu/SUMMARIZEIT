@@ -131,7 +131,7 @@ def extract_valid_keywords(keywords_file):
     print("Filtered keywords:", filtered_keywords)
     return filtered_keywords
 
-# Generate Summary
+# Generate Summary-
 def generate_summary(text, model, tokenizer):
     inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=1024)
     summary_ids = model.generate(inputs['input_ids'], num_beams=4, max_length=150, early_stopping=True)
