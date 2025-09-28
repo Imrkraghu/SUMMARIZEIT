@@ -1,40 +1,41 @@
-# SUMMARIZEIT
+# 🎙️ SUMMARIZEIT
 
-**AI-Powered Real-Time Speech Summarization Tool**
+**AI-Powered Real-Time Speech Summarization Platform**
 
-**SUMMARIZEIT** is an AI-driven platform that transcribes spoken language into concise, structured, and meaningful summaries. It captures audio from sources like meetings, interviews, or lectures and processes it using advanced speech recognition and NLP models. The platform is designed to enhance productivity in academic, corporate, and media environments by making spoken information easily searchable and useful.
-
----
-
-## 🚀 Features
-
-* **Real-Time Transcription** – Convert spoken content into accurate text using AI models
-* **Keyword Extraction** – Identify relevant keywords contextually using NLP
-* **Automatic Summarization** – Generate concise summaries with transformers (e.g., BART)
-* **Web Interface** – Access via a browser using Django
-* **Scalable Architecture** – Efficient handling of diverse audio workloads
+**SUMMARIZEIT** is an intelligent, real-time speech-to-summary system designed to transcribe spoken language and generate concise, contextual summaries. Built for meetings, lectures, interviews, and more, it transforms audio into searchable insights using cutting-edge NLP and deep learning models.
 
 ---
 
-## 🛠️ Tech Stack
+## ✨ Features
 
-* **Frontend**: HTML, CSS, JavaScript
-* **Backend**: Python, Django
-* **Speech Recognition**: SpeechRecognition
-* **NLP & Summarization**: NLTK, spaCy, Transformers (BERT, BART)
-* **Deep Learning**: PyTorch, TensorFlow
-* **UI**: Bootstrap
+- **Live Transcription Streaming** – Transcriptions update instantly as audio is processed
+- **Keyword Extraction** – Context-aware keyword identification using NLTK and Transformers
+- **Automatic Summarization** – Generates meaningful summaries using BART
+- **Web Interface** – Interactive browser-based UI powered by Django
+- **Threaded Audio Processing** – Efficient multi-threaded architecture for scalable workloads
 
 ---
 
-## 📦 Installation
+## 🧠 Tech Stack
 
-1. **Clone the Repository**:
+| Layer        | Tools & Libraries |
+|--------------|-------------------|
+| Frontend     | HTML, CSS, JavaScript, Bootstrap |
+| Backend      | Python, Django |
+| Audio Input  | PyAudio, SpeechRecognition |
+| NLP & ML     | NLTK, Transformers (BART), PyTorch |
+| Caching      | Django Cache Framework |
+
+---
+
+## 📦 Installation Guide
+
+1. **Clone the Repository**
 
    ```bash
    git clone https://github.com/Imrkraghu/SUMMARIZEIT.git
    cd SUMMARIZEIT
-   ```
+
 
 2. **Create a Virtual Environment**:
 
