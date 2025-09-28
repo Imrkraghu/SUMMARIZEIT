@@ -63,7 +63,16 @@ def record_audio(request):
         # Start processing threads (3 worker threads)
         results_queue = start_processing_threads(num_threads=3)
 
-        return JsonResponse({'message': 'Recording started successfully'})
+        # this is the part which will send the json response for the continue
+        transcription = request.session.get('transcription', '')
+        keywords = request.session.get('keywords', [])
+        summaries = request.session.get('summaries', []) 
+        return JsonResponse({
+            "transcription": transcription,
+            "keywords": keywords,
+            "summaries": summaries,
+            "message": "recording started successfully"
+        })
 
     except Exception as e:
         cache.set("recording_active", False)

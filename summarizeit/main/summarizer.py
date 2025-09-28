@@ -15,12 +15,18 @@ from django.core.cache import cache
 from django.conf import settings
 import threading
 import queue
+import time
 
 
 # NLTK Setup
 NLTK_CUSTOM_PATH = os.path.join(settings.BASE_DIR, 'nltk_resources')
 os.makedirs(NLTK_CUSTOM_PATH, exist_ok=True)
 nltk.data.path.append(NLTK_CUSTOM_PATH)
+
+# Load BART model and tokenizer once
+bart_model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
+bart_tokenizer = BARTTokenizer.from_pretrained('facebook/bart-large-cnn')
+
 def is_resource_available(resource_path):
     try:
         nltk.data.find(resource_path)
@@ -38,7 +44,7 @@ processing_threads = []
 recording_counter = 0
 
 # Record Audio
-def record_audio_to_file(OUTPUT_FILENAME=None):
+def record_audio_to_file(OUTPUT_FILENAME=None, duration=10):
     global recording_counter
     if OUTPUT_FILENAME is None:
         recording_counter += 1
@@ -50,13 +56,14 @@ def record_audio_to_file(OUTPUT_FILENAME=None):
     CHANNELS = 1
     RATE = 44100
     CHUNK = 1024
+    NUM_CHUNKS = int(RATE / CHUNK * duration)
     try:
         audio = pyaudio.PyAudio()
         stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
-        print("Recording...")
+        print(f"Recording for {duration} seconds...")
 
         frames = []
-        while cache.get("recording_active", False):
+        for _ in range(NUM_CHUNKS):
             data = stream.read(CHUNK)
             frames.append(data)
 
@@ -108,7 +115,7 @@ def extract_keywords_from_text(transcription_file):
     word_freq = Counter(filtered_words)
     keywords = [kw for kw, _ in word_freq.most_common(10)]
 
-    base_name = os.path.splitext(os.path.basename(transcription_file))
+    base_name = os.path.splitext(os.path.basename(transcription_file))[0]
     keywords_file = os.path.join(settings.MEDIA_ROOT, "keywords", f"{base_name}_keywords.txt")
     os.makedirs(os.path.dirname(keywords_file), exist_ok=True)
     with open(keywords_file, "w") as file:
@@ -133,9 +140,9 @@ def extract_valid_keywords(keywords_file):
 
 # Generate Summary-
 def generate_summary(text, model, tokenizer):
-    inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=1024)
-    summary_ids = model.generate(inputs['input_ids'], num_beams=4, max_length=150, early_stopping=True)
-    return tokenizer.decode(summary_ids, skip_special_tokens=True)
+        inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=1024)
+        summary_ids = model.generate(inputs['input_ids'], num_beams=4, max_length=150, early_stopping=True)
+        return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
 # Fetch Wikipedia & Summarize
 def fetch_summary_for_keyword(keyword, model, tokenizer):
@@ -177,9 +184,6 @@ def run_summarizer_pipeline(audio_file, results, counter=1):
         results.put([])
         return
 
-    bart_model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
-    bart_tokenizer = BARTTokenizer.from_pretrained('facebook/bart-large-cnn')
-
     for keyword in filtered_keywords:
         summary = fetch_summary_for_keyword(keyword, bart_model, bart_tokenizer)
         summaries.append({'keyword': keyword, 'text': summary})
@@ -194,14 +198,14 @@ def start_recording_thread():
     def record_loop():
         cache.set("recording_active", True)
         global recording_counter
-        recording_counter += 1
-        OUTPUT_FILENAME = os.path.join(settings.MEDIA_ROOT, "recordings", f"recorded_audio_{recording_counter}.wav")
         while cache.get("recording_active", False):
-            recorded_file = record_audio_to_file(OUTPUT_FILENAME)
+            recording_counter += 1
+            output_filename = os.path.join(settings.MEDIA_ROOT, "recordings", f"recorded_audio_{recording_counter}.wav")
+            recorded_file = record_audio_to_file(output_filename, duration=10)
             if recorded_file:
                 print(f"Recorded audio: {recorded_file}")
                 audio_queue.put(recorded_file)
-            break # Only record once for single-file logic
+            time.sleep(1)  # Small delay in between recordings
         print("Recording thread stopped")
 
     thread = threading.Thread(target=record_loop, daemon=True)
