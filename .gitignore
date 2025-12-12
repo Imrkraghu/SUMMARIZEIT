@@ -1,0 +1,6 @@
+# Ignore everything inside the media folder
+media/*
+
+# Ignore everything inside the nltk folder
+nltk_resources/*
+venv/

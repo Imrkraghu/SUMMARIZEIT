@@ -168,15 +168,11 @@
 <script>
 let isRecording = false;
 let statusInterval = null;
+let resultsInterval = null;
 
-// Update system status periodically
+// Update system status (Lights and Numbers)
 function updateStatus() {
-    fetch('/get_status/', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
+    fetch('/get_status/', { method: 'GET' })
     .then(response => response.json())
     .then(data => {
         const statusIndicator = document.querySelector('.status-indicator');
@@ -192,7 +188,7 @@ function updateStatus() {
             statusText.textContent = 'Processing...';
         } else {
             statusIndicator.className = 'status-indicator status-idle';
-            statusText.textContent = 'Ready to record';
+            statusText.textContent = 'Ready';
         }
 
         // Update detailed status
@@ -210,22 +206,53 @@ function updateStatus() {
             processingInfo.style.display = 'none';
         }
     })
-    .catch(error => {
-        console.error('Error fetching status:', error);
-    });
+    .catch(console.error);
 }
 
-// Start status updates when recording
-function startStatusUpdates() {
-    if (statusInterval) clearInterval(statusInterval);
-    statusInterval = setInterval(updateStatus, 3000);
+// Fetch Latest Results (Text and Summaries) - This is the key fix
+function fetchResults() {
+    fetch('/get_latest_results/', { method: 'GET' })
+    .then(response => response.json())
+    .then(data => {
+        updateUI(data);
+        
+        // If we are not recording and server says processing is done, stop polling
+        if (!isRecording && !data.is_processing) {
+            clearInterval(resultsInterval);
+            resultsInterval = null;
+            document.getElementById("recordBtn").disabled = false;
+            document.getElementById("recordBtn").innerHTML = "🎙️ Start Recording";
+        }
+    })
+    .catch(console.error);
 }
 
-// Stop status updates
-function stopStatusUpdates() {
-    if (statusInterval) {
-        clearInterval(statusInterval);
-        statusInterval = null;
+function updateUI(data) {
+    const transcriptionEl = document.getElementById("transcriptionContainer");
+    const keywordEl = document.getElementById("keywordsContainer");
+    const summaryEl = document.getElementById("summariesContainer");
+
+    // Transcription
+    if (data.transcription && data.transcription.trim()) {
+        transcriptionEl.innerHTML = `<pre class="mb-0">${data.transcription}</pre>`;
+    }
+
+    // Keywords
+    if (data.keywords && data.keywords.length > 0) {
+        keywordEl.innerHTML = `<ul class="list-group list-group-flush">` +
+            data.keywords.map(kw => `<li class="list-group-item">${kw}</li>`).join('') +
+            `</ul>`;
+    }
+
+    // Summaries
+    if (data.summaries && data.summaries.length > 0) {
+        summaryEl.innerHTML = data.summaries.map(s => `
+            <div class="summary-box">
+                <strong>${s.keyword}</strong>: ${s.text}
+            </div>
+        `).join('');
+    } else if (data.is_processing || isRecording) {
+         // Keep the "No summaries" message or show a spinner if you prefer
     }
 }
 
@@ -237,14 +264,13 @@ document.getElementById("recordBtn").addEventListener("click", function () {
     const summaryEl = document.getElementById("summariesContainer");
 
     if (recordBtn.innerHTML.includes("Start")) {
-        // START RECORDING
+        // --- START RECORDING ---
         isRecording = true;
         recordBtn.innerHTML = "⏹️ Stop Recording";
         recordBtn.classList.add("w3-red");
-        recordBtn.disabled = true;
-
-        // Clear previous results and show loading states
-        transcriptionEl.innerHTML = `<p class="text-muted">⏳ Recording and transcribing audio...</p>`;
+        
+        // Reset UI
+        transcriptionEl.innerHTML = `<p class="text-muted">⏳ Recording and transcribing...</p>`;
         keywordEl.innerHTML = `<p class="text-muted">⏳ Extracting keywords...</p>`;
         summaryEl.innerHTML = `<p class="text-muted">⏳ Generating summaries...</p>`;
 
@@ -257,26 +283,28 @@ document.getElementById("recordBtn").addEventListener("click", function () {
         })
         .then(response => response.json())
         .then(data => {
-            recordBtn.disabled = false;
             if (data.error) {
                 alert("Start Error: " + data.error);
                 resetUI();
             } else {
-                startStatusUpdates();
+                // Start the polling loops
+                if (statusInterval) clearInterval(statusInterval);
+                statusInterval = setInterval(updateStatus, 1500); // Check status fast
+                
+                if (resultsInterval) clearInterval(resultsInterval);
+                resultsInterval = setInterval(fetchResults, 2000); // Check results every 2s
             }
         })
         .catch(err => {
-            alert("Error starting recording: " + err);
-            console.error(err);
-            recordBtn.disabled = false;
+            alert("Error starting: " + err);
             resetUI();
         });
 
     } else {
-        // STOP RECORDING
+        // --- STOP RECORDING ---
         isRecording = false;
-        recordBtn.disabled = true;
-        recordBtn.innerHTML = "🔄 Processing...";
+        recordBtn.innerHTML = "🔄 Finalizing...";
+        recordBtn.disabled = true; // Disable button while we wait for final summaries
 
         fetch("{% url 'stop_recording' %}", {
             method: "POST",
@@ -287,60 +315,26 @@ document.getElementById("recordBtn").addEventListener("click", function () {
         })
         .then(res => res.json())
         .then(data => {
-            recordBtn.disabled = false;
-            stopStatusUpdates();
-            
-            if (data.error) {
-                alert("Stop Error: " + data.error);
-                resetUI();
-                return;
-            }
-
-            // Update UI with results
-            if (data.transcription && data.transcription.trim()) {
-                transcriptionEl.innerHTML = `<pre class="mb-0">${data.transcription}</pre>`;
-            } else {
-                transcriptionEl.innerHTML = `<p class="text-muted">No transcription available.</p>`;
-            }
-
-            if (data.keywords && data.keywords.length > 0) {
-                keywordEl.innerHTML = `<ul class="list-group list-group-flush">` +
-                    data.keywords.map(kw => `<li class="list-group-item">${kw}</li>`).join('') +
-                    `</ul>`;
-            } else {
-                keywordEl.innerHTML = `<p class="text-muted">No keywords found.</p>`;
-            }
-
-            if (data.summaries && data.summaries.length > 0) {
-                summaryEl.innerHTML = data.summaries.map(s => `
-                    <div class="summary-box">
-                        <strong>${s.keyword}</strong>: ${s.text}
-                    </div>
-                `).join('');
-            } else {
-                summaryEl.innerHTML = `<p class="text-muted">No summaries generated.</p>`;
-            }
-
-            resetUI();
-            // Final status update
-            updateStatus();
+            // We don't stop the polling loops here immediately.
+            // We let resultsInterval keep running until "is_processing" becomes false
+            // This ensures late summaries are caught.
+            console.log("Stop signal sent");
         })
         .catch(err => {
-            alert("Something went wrong while stopping: " + err);
-            console.error(err);
-            recordBtn.disabled = false;
-            stopStatusUpdates();
+            alert("Error stopping: " + err);
             resetUI();
         });
     }
 });
 
-// Reset UI to initial state
 function resetUI() {
     const recordBtn = document.getElementById("recordBtn");
     recordBtn.innerHTML = "🎙️ Start Recording";
     recordBtn.classList.remove("w3-red");
+    recordBtn.disabled = false;
     isRecording = false;
+    if (statusInterval) clearInterval(statusInterval);
+    if (resultsInterval) clearInterval(resultsInterval);
 }
 
 // Refresh status manually

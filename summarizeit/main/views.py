@@ -8,6 +8,9 @@ import threading
 import queue
 import json
 
+# Import the model to ensure app registry is loaded (good practice)
+from .models import SummaryCache 
+
 from .summarizer import (
     start_recording_thread, 
     start_processing_threads, 
@@ -16,15 +19,75 @@ from .summarizer import (
     processing_threads
 )
 
-# Global variables to hold threads and results queue
+# Global variables to hold threads and results
 record_thread = None
 results_queue = None
+
+# Global accumulator for the current session
+current_session_data = {
+    "transcriptions": [],
+    "keywords": [],
+    "summaries": []
+}
+
+def collect_results_from_queue():
+    """
+    Helper function to drain the queue into the global storage
+    without blocking the main thread.
+    """
+    global results_queue, current_session_data
+    
+    if not results_queue:
+        return
+
+    while not results_queue.empty():
+        try:
+            # The workers in summarizer.py should now be using the 
+            # 'smart_summarize' function that checks the DB
+            transcription = results_queue.get_nowait()
+            keywords = results_queue.get_nowait()  
+            summaries = results_queue.get_nowait()
+
+            if transcription and transcription.strip():
+                current_session_data["transcriptions"].append(transcription)
+            
+            if keywords:
+                current_session_data["keywords"].extend(keywords)
+            
+            if summaries:
+                # 'summaries' list contains objects like {'keyword': 'X', 'text': 'Y'}
+                current_session_data["summaries"].extend(summaries)
+                
+        except queue.Empty:
+            break
+        except Exception as e:
+            print(f"Error draining queue: {e}")
+            break
+
+def format_response_data():
+    """Helper to format the current data for JSON response"""
+    combined_transcription = " | ".join(current_session_data["transcriptions"])
+    
+    # Remove duplicates for keywords in the UI list
+    seen = set()
+    unique_keywords = []
+    for keyword in current_session_data["keywords"]:
+        if keyword not in seen:
+            seen.add(keyword)
+            unique_keywords.append(keyword)
+
+    return {
+        "transcription": combined_transcription,
+        "keywords": unique_keywords,
+        "summaries": current_session_data["summaries"]
+    }
 
 @csrf_exempt
 def index(request):
     transcription = request.session.get('transcription', '')
     keywords = request.session.get('keywords', [])
     summaries = request.session.get('summaries', [])
+    
     return render(request, 'main/index.html', {
         'transcription': transcription,
         'keywords': keywords,
@@ -32,21 +95,41 @@ def index(request):
     })
 
 @csrf_exempt
+def get_latest_results(request):
+    """Called by JS to get updates while recording/processing"""
+    collect_results_from_queue() 
+    data = format_response_data()
+    
+    is_processing = (audio_queue.qsize() > 0 or len(processing_threads) > 0)
+    
+    return JsonResponse({
+        "transcription": data["transcription"],
+        "keywords": data["keywords"],
+        "summaries": data["summaries"],
+        "is_processing": is_processing
+    })
+
+@csrf_exempt
 @require_POST
 def record_audio(request):
     """Start recording audio and processing threads"""
-    global record_thread, results_queue
+    global record_thread, results_queue, current_session_data
 
-    # Check if recording is already active
     if cache.get("recording_active", False):
         return JsonResponse({'error': 'Recording already in progress'}, status=400)
 
     try:
-        # Clear any previous state
-        cache.set("recording_active", False)  # Reset first
-        time.sleep(0.1)  # Brief pause
+        # Reset Global Data
+        current_session_data = {
+            "transcriptions": [],
+            "keywords": [],
+            "summaries": []
+        }
         
-        # Clear existing queue items
+        cache.set("recording_active", False)
+        time.sleep(0.1)
+        
+        # Clear queues
         while not audio_queue.empty():
             try:
                 audio_queue.get_nowait()
@@ -54,23 +137,16 @@ def record_audio(request):
             except queue.Empty:
                 break
 
-        # Clear processing threads list
         processing_threads.clear()
 
-        # Start recording thread
+        # Start threads
         record_thread = start_recording_thread()
-        
-        # Start processing threads (3 worker threads)
         results_queue = start_processing_threads(num_threads=3)
 
-        # this is the part which will send the json response for the continue
-        transcription = request.session.get('transcription', '')
-        keywords = request.session.get('keywords', [])
-        summaries = request.session.get('summaries', []) 
         return JsonResponse({
-            "transcription": transcription,
-            "keywords": keywords,
-            "summaries": summaries,
+            "transcription": "",
+            "keywords": [],
+            "summaries": [],
             "message": "recording started successfully"
         })
 
@@ -82,79 +158,41 @@ def record_audio(request):
 @require_POST
 def stop_recording(request):
     """Stop recording and collect all results"""
-    global record_thread, results_queue
+    global record_thread, results_queue, current_session_data
 
     if not cache.get("recording_active", False):
         return JsonResponse({'error': 'No active recording to stop'}, status=400)
 
     try:
-        # Signal to stop recording
         cache.set("recording_active", False)
 
-        # Wait for recording thread to finish
         if record_thread and record_thread.is_alive():
             record_thread.join(timeout=10)
 
-        # Wait for all queued audio to be processed
         audio_queue.join()
 
-        # Stop all processing threads gracefully
         for _ in processing_threads:
-            audio_queue.put(None)  # Sentinel value
+            audio_queue.put(None)
 
-        # Wait for processing threads to finish
         for t in processing_threads:
             if t.is_alive():
                 t.join(timeout=5)
 
-        # Collect all results from results_queue
-        all_transcriptions = []
-        all_keywords = []
-        all_summaries = []
+        collect_results_from_queue()
+        final_data = format_response_data()
 
-        while not results_queue.empty():
-            try:
-                transcription = results_queue.get_nowait()
-                keywords = results_queue.get_nowait()  
-                summaries = results_queue.get_nowait()
+        request.session['transcription'] = final_data["transcription"]
+        request.session['keywords'] = final_data["keywords"]
+        request.session['summaries'] = final_data["summaries"]
 
-                if transcription and transcription.strip():
-                    all_transcriptions.append(transcription)
-                
-                if keywords:
-                    all_keywords.extend(keywords)
-                
-                if summaries:
-                    all_summaries.extend(summaries)
-
-            except queue.Empty:
-                break
-
-        # Combine all transcriptions
-        combined_transcription = " | ".join(all_transcriptions) if all_transcriptions else ""
-        
-        # Remove duplicate keywords while preserving order
-        seen = set()
-        unique_keywords = []
-        for keyword in all_keywords:
-            if keyword not in seen:
-                seen.add(keyword)
-                unique_keywords.append(keyword)
-
-        # Save results to session
-        request.session['transcription'] = combined_transcription
-        request.session['keywords'] = unique_keywords
-        request.session['summaries'] = all_summaries
-
-        # Clean up
         processing_threads.clear()
         record_thread = None
         results_queue = None
 
         return JsonResponse({
-            "transcription": combined_transcription,
-            "keywords": unique_keywords,
-            "summaries": all_summaries,
+            "transcription": final_data["transcription"],
+            "keywords": final_data["keywords"],
+            "summaries": final_data["summaries"],
             "message": "Recording stopped and processed successfully"
         })
 
@@ -164,7 +202,6 @@ def stop_recording(request):
 
 @csrf_exempt
 def get_status(request):
-    """Get current recording status"""
     is_recording = cache.get("recording_active", False)
     queue_size = audio_queue.qsize() if audio_queue else 0
     

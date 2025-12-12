@@ -16,6 +16,7 @@ from django.conf import settings
 import threading
 import queue
 import time
+from .models import SummaryCache
 
 
 # NLTK Setup
@@ -185,9 +186,18 @@ def run_summarizer_pipeline(audio_file, results, counter=1):
         return
 
     for keyword in filtered_keywords:
-        summary = fetch_summary_for_keyword(keyword, bart_model, bart_tokenizer)
-        summaries.append({'keyword': keyword, 'text': summary})
-        print(f"\nSummary for '{keyword}':\n{summary}\n")
+        try:
+            summary = SummaryCache.objects.get(keyword=keyword)
+            summaries.append({'keyword': keyword, 'text': summary.summary_text})
+            print(f"\nSummary for '{keyword}':\n{summary.summary_text}\n")
+        except SummaryCache.DoesNotExist:
+            try:
+                summary = fetch_summary_for_keyword(keyword, bart_model, bart_tokenizer)
+                SummaryCache.objects.create(keyword=keyword, summary_text=summary)
+                summaries.append({'keyword': keyword, 'text': summary})
+                print(f"\nSummary for '{keyword}':\n{summary}\n")
+            except Exception as e:
+                print(f"error while saving to database : {e}")  
 
     results.put(transcription)
     results.put(filtered_keywords)
