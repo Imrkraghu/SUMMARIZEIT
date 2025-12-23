@@ -1,13 +1,13 @@
 from django.shortcuts import render, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.http import JsonResponse
+from django.views.decorators.http import require_POST,  require_http_methods
+from django.http import JsonResponse,HttpResponseBadRequest
 from django.core.cache import cache
 import time
 import threading
 import queue
 import json
-
+import logging
 # Import the model to ensure app registry is loaded (good practice)
 from .models import SummaryCache 
 
@@ -82,7 +82,6 @@ def format_response_data():
         "summaries": current_session_data["summaries"]
     }
 
-@csrf_exempt
 def index(request):
     transcription = request.session.get('transcription', '')
     keywords = request.session.get('keywords', [])

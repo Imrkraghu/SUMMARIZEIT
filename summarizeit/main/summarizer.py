@@ -17,6 +17,7 @@ import threading
 import queue
 import time
 from .models import SummaryCache
+from rake_nltk import Rake
 
 
 # NLTK Setup
@@ -155,7 +156,10 @@ def fetch_summary_for_keyword(keyword, model, tokenizer):
         soup = BeautifulSoup(response.content, "html.parser")
         paragraphs = soup.find_all("p")
         extracted_text = " ".join(p.get_text() for p in paragraphs[:3]).strip()
-        return generate_summary(extracted_text, model, tokenizer)
+        if ("Other reason this message may be displayed" in extracted_text or len(extracted_text.split()) < 30):
+            return "No summary available"
+        else:
+            return generate_summary(extracted_text, model, tokenizer)
     except Exception as e:
         print(f"Failed to summarize {keyword}: {e}")
         return "Summary unavailable."
