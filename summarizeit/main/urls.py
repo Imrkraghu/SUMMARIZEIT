@@ -8,7 +8,7 @@ urlpatterns = [
     # for original
     # path('index/', views.index, name='index'),
     # for new
-    path('index/', chat_views.index, name='index'),
+    path('index/', views.index, name='index'),
     path('record/', views.record_audio, name='record_audio'),
     path("", views.SummarizeIT, name="SummarizeIT"),
     path("projects/", views.projects, name="projects"),
