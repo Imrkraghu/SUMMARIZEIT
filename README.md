@@ -23,9 +23,9 @@
 | Frontend     | HTML, CSS, JavaScript, Bootstrap |
 | Backend      | Python, Django |
 | Audio Input  | PyAudio, SpeechRecognition |
-| NLP & ML     | NLTK, Transformers (BART), PyTorch |
+| NLP & ML     | Rake NLTK, Transformers (BART), PyTorch |
 | Caching      | Django Cache Framework |
-
+| Database     | Sqlite |
 ---
 
 ## 📦 Installation Guide
@@ -80,10 +80,14 @@ http://localhost:8000
 
 ```
 SUMMARIZEIT/
-├── manage.py
-├── main                   # main project which is going to get executed 
-├── summarizeit/           # Django project settings
-├── requirements.txt       # project requirements
+├── manage.py 
+├── main      # main project 
+├── media
+├── db.sqlite # database to store summaries
+├── nltk_resources   
+├── summarizeit         
+├── summarizeit/   # Django project settings
+├── requirements.txt   #project requirements
 └── README.md
 ```
 
