@@ -1,3 +1,4 @@
+# this line is from bhanu
 from django.db import models
 
 class SummaryCache(models.Model):
