@@ -61,18 +61,25 @@
         </div>
         <div class="w3-third">
             <div class="project-box">
-                <h3>Project 2: Image Recognition</h3>
+                <h3>Project 2: SummarizeIT Chatbot</h3>
+                <p>Revolutionizing human-computer interaction through advanced natural language understanding and generation in chat form.</p>
+                <button class="w3-button w3-red w3-margin-top launch-button" onclick="launchChat()">Launch Project</button>
+            </div>
+        </div>
+        <div class="w3-third">
+            <div class="project-box">
+                <h3>Project 3: Image Recognition</h3>
                 <p>Transforming visual data analysis with state-of-the-art image recognition algorithms and applications.</p>
                 <button class="w3-button w3-red w3-margin-top launch-button">Launch Project</button>
             </div>
         </div>
-        <div class="w3-third">
+        <!-- <div class="w3-third">
             <div class="project-box">
                 <h3>Project 3: Predictive Analytics</h3>
                 <p>Harnessing the power of data to forecast trends and make informed decisions with predictive analytics.</p>
                 <button class="w3-button w3-red w3-margin-top launch-button">Launch Project</button>
             </div>
-        </div>
+        </div> -->
     </div>
 </div>
 
@@ -91,7 +98,10 @@
 
 <script>
 function launchSummarizeIT() {
-    window.location.href = "{% url 'SummarizeIT' %}";
+    window.location.href = "{% url 'index' %}";
+}
+function launchChat(){
+    window.location.href = "{% url 'chat' %}"
 }
 
 // Used to toggle the menu on small screens when clicking on the menu button
