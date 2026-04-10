@@ -9,7 +9,7 @@ import queue
 import json
 import logging
 # Import the model to ensure app registry is loaded (good practice)
-from .models import SummaryCache 
+from main.models import SummaryCache 
 
 from .summarizer import (
     start_recording_thread, 
@@ -209,23 +209,13 @@ def get_status(request):
         'processing_threads': len(processing_threads)
     })
 
-def SummarizeIT(request):
-    return render(request, 'main/summarizeIT.html')
-
-def home(request):
-    return render(request, 'main/homepage.html')
-
-def projects(request):
-    return render(request, 'main/projects.html')
-
-def about(request):
-    return render(request, 'main/about.html')
-
-def team(request):
-    return render(request, 'main/team.html')
-
-def contact(request):
-    return render(request, 'main/contact.html')
-
-def rohit(request):
-    return HttpResponse("hello Sir, my master you are the almighty")
+def index(request):
+    transcription = request.session.get('transcription', '')
+    keywords = request.session.get('keywords', [])
+    summaries = request.session.get('summaries', [])
+    
+    return render(request, 'summarizer/index.html', {
+        'transcription': transcription,
+        'keywords': keywords,
+        'summaries': summaries
+    })

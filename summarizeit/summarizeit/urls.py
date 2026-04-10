@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("", include("main.urls")),
     path("", include("chat.urls")),
+    path("", include("summarizer.urls")),
 ]
 
 # it serves the media files during the developement
