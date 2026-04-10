@@ -51,5 +51,6 @@ jobs:
 
     # Run Django tests
     - name: Run Tests
+      working-directory: ./SUMMARIZEIT
       run: |
         python manage.py test
