@@ -10,3 +10,4 @@ transformers
 django
 rake-nltk
 spacy
+gunicorn
