@@ -1,6 +1,4 @@
 # torch is installed separately in Dockerfile via CPU wheel index
-# tensorflow-cpu replaces tensorflow (no CUDA = much smaller image)
-tensorflow-cpu
 
 # NLP
 nltk
