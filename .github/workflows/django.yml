@@ -52,3 +52,4 @@ jobs:
     # Run Django tests
     - name: Run Tests
       run: python manage.py test
+      working-directory: ./summarizeit
