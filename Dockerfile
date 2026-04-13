@@ -34,7 +34,10 @@ RUN python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt'); 
 FROM deps AS final
 
 WORKDIR /app
+
+# Copy entire repo root into /app (manage.py, summarizeit/, main/, etc.)
 COPY . /app
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
