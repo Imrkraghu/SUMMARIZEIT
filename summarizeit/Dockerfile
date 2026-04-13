@@ -1,28 +1,26 @@
-# Use official Python image
 FROM python:3.12-slim
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     portaudio19-dev \
     python3-dev \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Set work directory
 WORKDIR /app
 
-# Copy project files
+# Install dependencies first (better layer caching)
+COPY requirements.txt .
+RUN python -m pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copy the rest of the project
 COPY . /app
 
-# Upgrade pip and install Python dependencies
-RUN python -m pip install --upgrade pip
-RUN pip install -r requirements.txt
+# Copy and permission the entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Collect static files (optional for Django)
-RUN python manage.py collectstatic --noinput
-
-# Expose Railway port
 EXPOSE 8000
 
-# Start Django with Gunicorn
-CMD ["gunicorn", "summarizeit.wsgi:application", "--bind", "0.0.0.0:$PORT"]
+# collectstatic + migrations run at container start, after env vars are loaded
+CMD ["/entrypoint.sh"]
