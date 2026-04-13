@@ -1,13 +1,22 @@
-﻿torch
-tensorflow
-pyaudio
+# torch is installed separately in Dockerfile via CPU wheel index
+# tensorflow-cpu replaces tensorflow (no CUDA = much smaller image)
+tensorflow-cpu
+
+# NLP
 nltk
-requests
-pandas
-SpeechRecognition
-beautifulsoup4
-transformers
-django
 rake-nltk
 spacy
+transformers
+SpeechRecognition
+
+# Data
+pandas
+
+# Web
+requests
+beautifulsoup4
+django
 gunicorn
+
+# Audio
+PyAudio
