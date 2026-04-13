@@ -13,21 +13,24 @@ COPY requirements.txt .
 
 RUN pip install --upgrade pip wheel
 
-# Install heavy binary-only packages first (no compilation, pulls pre-built wheels)
-RUN pip install --only-binary=:all: torch tensorflow
-
-# Install common scientific packages as binaries
+# Install CPU-only torch (~800MB instead of ~2.5GB with CUDA)
 RUN pip install --only-binary=:all: \
-    numpy pandas scipy scikit-learn \
-    || true
+    torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install everything else from requirements.txt
+# Install CPU-only tensorflow (~400MB instead of ~600MB)
+RUN pip install --only-binary=:all: tensorflow-cpu
+
+# Install remaining binary packages
+RUN pip install --only-binary=:all: \
+    numpy pandas scipy scikit-learn || true
+
+# Install the rest
 RUN pip install -r requirements.txt
 
-# Download spaCy model at build time (avoids runtime delay)
+# Download spaCy model at build time
 RUN python -m spacy download en_core_web_sm
 
-# Download NLTK data at build time (avoids runtime delay)
+# Download NLTK data at build time
 RUN python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt'); nltk.download('punkt_tab')"
 
 # ---- Final stage ----
