@@ -13,16 +13,13 @@ COPY requirements.txt .
 
 RUN pip install --upgrade pip wheel
 
-# Install CPU-only torch (~800MB instead of ~2.5GB with CUDA)
+# CPU-only torch (~180MB vs ~2.5GB with CUDA)
 RUN pip install --only-binary=:all: \
     torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install CPU-only tensorflow (~400MB instead of ~600MB)
-RUN pip install --only-binary=:all: tensorflow-cpu
-
 # Install remaining binary packages
 RUN pip install --only-binary=:all: \
-    numpy pandas scipy scikit-learn || true
+    numpy pandas || true
 
 # Install the rest
 RUN pip install -r requirements.txt
