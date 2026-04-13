@@ -15,7 +15,8 @@ from .summarizer import (
     start_recording_thread, 
     start_processing_threads, 
     audio_queue, 
-    processing_threads
+    processing_threads,
+    microphone_available
 )
 
 # Global variables to hold threads and results
@@ -219,3 +220,9 @@ def index(request):
         'keywords': keywords,
         'summaries': summaries
     })
+
+from django.http import JsonResponse
+
+
+def microphone_status(request):
+    return JsonResponse({"microphone": microphone_available()})

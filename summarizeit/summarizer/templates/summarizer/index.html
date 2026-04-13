@@ -88,7 +88,7 @@
     <p class="w3-xlarge">Record - Transcribe - Summarize</p>
     <div class="w3-margin-top">
         <button id="recordBtn" class="w3-button w3-black w3-padding-large w3-large w3-margin-right">
-            🎙️ Start Recording
+            🎙️ Mic Checking
         </button>
         <div id="statusIndicator" class="w3-margin-top">
             <span class="status-indicator status-idle"></span>
@@ -166,11 +166,36 @@
 </footer>
 
 <script>
+
 let isRecording = false;
 let statusInterval = null;
 let resultsInterval = null;
 
 // Update system status (Lights and Numbers)
+document.addEventListener("DOMContentLoaded", mic_check())
+function mic_check(){
+     if (recordBtn.innerHTML.includes("Mic")){
+        isRecording = false;
+        fetch("{% url 'microphone_status' %}")
+    .then(response => response.json())
+    .then(data => {
+      const statusDiv = document.getElementById('recordBtn');
+      if (data.microphone) {
+        statusDiv.innerText = "🎤 Start Recording";
+        statusDiv.style.color = "green";
+        recordBtn.disabled = false;
+      } else {
+        statusDiv.innerText = "⚠️ No microphone detected";
+        statusDiv.style.color = "red";
+        recordBtn.disabled = true;
+      }
+    })
+    .catch(err => {
+      document.getElementById('mic-status').innerText = "Error checking microphone";
+    });
+}
+
+}
 function updateStatus() {
     fetch('/get_status/', { method: 'GET' })
     .then(response => response.json())

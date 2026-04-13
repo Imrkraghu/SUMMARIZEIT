@@ -9,5 +9,5 @@ urlpatterns = [
     path("about/", views.about, name="about"),
     path("contact/", views.contact, name="contact"),
     path('', include('chat.urls')),
-    path('', include('summarizer.urls'))
+    path('', include('summarizer.urls')),
 ]

@@ -45,6 +45,20 @@ audio_queue = queue.Queue()
 processing_threads = []
 recording_counter = 0
 
+def microphone_available():
+    try:
+        p = pyaudio.PyAudio()
+        count = p.get_device_count()
+        for i in range(count):
+            info = p.get_device_info_by_index(i)
+            if info.get('maxInputChannels', 0) > 0:
+                p.terminate()
+                return True
+        p.terminate()
+        return False
+    except Exception:
+        return False
+
 # Record Audio
 def record_audio_to_file(OUTPUT_FILENAME=None, duration=10):
     global recording_counter
@@ -83,7 +97,7 @@ def record_audio_to_file(OUTPUT_FILENAME=None, duration=10):
             return OUTPUT_FILENAME
         return None
     except OSError as e:
-        print(f"OSError: {e}")
+        print(f"Audio Device Error: {e}")
         return None
 
 # Transcribe Audio
@@ -219,6 +233,9 @@ def start_recording_thread():
             if recorded_file:
                 print(f"Recorded audio: {recorded_file}")
                 audio_queue.put(recorded_file)
+            else:
+                print("skipped recording cause of the device error")
+                
             time.sleep(1)  # Small delay in between recordings
         print("Recording thread stopped")
 

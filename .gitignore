@@ -4,3 +4,4 @@ media/*
 # Ignore everything inside the nltk folder
 nltk_resources/*
 venv/
+.venv/

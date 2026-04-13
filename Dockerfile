@@ -23,6 +23,8 @@ RUN pip install --only-binary=:all: \
 
 # Install the rest
 RUN pip install -r requirements.txt
+ENV HF_HOME=/app/.cache/huggingface
+RUN python -c "from transformers import pipeline; pipeline('summarization')"
 
 # Download spaCy model at build time
 RUN python -m spacy download en_core_web_sm
