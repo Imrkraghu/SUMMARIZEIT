@@ -8,12 +8,19 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Install dependencies first (better layer caching)
+COPY requirements.txt .
+RUN python -m pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copy the rest of the project
 COPY . /app
 
-RUN python -m pip install --upgrade pip
-RUN pip install -r requirements.txt
+# Copy and permission the entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
-# Run collectstatic at runtime, not build
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn summarizeit.wsgi:application --bind 0.0.0.0:$PORT"]
+# collectstatic + migrations run at container start, after env vars are loaded
+CMD ["/entrypoint.sh"]
