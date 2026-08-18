@@ -3,8 +3,6 @@
 # NLP
 nltk
 rake-nltk
-spacy
-transformers
 SpeechRecognition
 
 # Data
@@ -17,4 +15,7 @@ django
 gunicorn
 
 # Audio
-PyAudio
+# PyAudio
+Wikipedia-API
+python-dotenv
+huggingface_hub

@@ -1,7 +1,6 @@
 import os
 import wave
-import torch
-import pyaudio
+# import pyaudio
 import nltk
 import requests
 import pandas as pd
@@ -10,14 +9,16 @@ from collections import Counter
 from bs4 import BeautifulSoup
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from transformers import BartForConditionalGeneration, BartTokenizer as BARTTokenizer
 from django.core.cache import cache
 from django.conf import settings
 import threading
 import queue
 import time
-from .models import SummaryCache
+from main.models import SummaryCache
 from rake_nltk import Rake
+from huggingface_hub import InferenceClient
+from dotenv import load_dotenv
+import wikipediaapi
 
 
 # NLTK Setup
@@ -25,9 +26,6 @@ NLTK_CUSTOM_PATH = os.path.join(settings.BASE_DIR, 'nltk_resources')
 os.makedirs(NLTK_CUSTOM_PATH, exist_ok=True)
 nltk.data.path.append(NLTK_CUSTOM_PATH)
 
-# Load BART model and tokenizer once
-bart_model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
-bart_tokenizer = BARTTokenizer.from_pretrained('facebook/bart-large-cnn')
 
 def is_resource_available(resource_path):
     try:
@@ -140,30 +138,31 @@ def extract_valid_keywords(keywords_file):
     print("Filtered keywords:", filtered_keywords)
     return filtered_keywords
 
-# Generate Summary-
-def generate_summary(text, model, tokenizer):
-        inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=1024)
-        summary_ids = model.generate(inputs['input_ids'], num_beams=4, max_length=150, early_stopping=True)
-        return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+def generate_summary(text):
+        load_dotenv()
+        client = InferenceClient(
+            model="facebook/bart-large-cnn",
+            token=os.getenv("HF_TOKEN")
+        )
+        return (client.summarization(text))
 
 # Fetch Wikipedia & Summarize
-def fetch_summary_for_keyword(keyword, model, tokenizer):
+def fetch_summary_for_keyword(keyword):
     try:
-        print(f"Fetching summary for: {keyword}")
-        url = f"https://en.wikipedia.org/wiki/{keyword}"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers)
-        soup = BeautifulSoup(response.content, "html.parser")
-        paragraphs = soup.find_all("p")
-        extracted_text = " ".join(p.get_text() for p in paragraphs[:3]).strip()
-        if ("Other reason this message may be displayed" in extracted_text or len(extracted_text.split()) < 30):
-            return "No summary available"
+        load_dotenv()
+        username = os.getenv("PROJECT_NAME")
+        usermail = os.getenv("PROJECT_MAIL")
+        wiki_wiki = wikipediaapi.Wikipedia( user_agent = f"{username} ({usermail})", language ='en')
+        page_py = wiki_wiki.page(keyword)
+        if page_py.exists() and len(page_py.summary) >30:
+                extracted_text = page_py.summary
+                return generate_summary(extracted_text)
         else:
-            return generate_summary(extracted_text, model, tokenizer)
+            return "No summary available"
+            
     except Exception as e:
         print(f"Failed to summarize {keyword}: {e}")
         return "Summary unavailable."
-
 # Main Pipeline
 def run_summarizer_pipeline(audio_file, results, counter=1):
     for folder in ["recordings", "transcriptions", "keywords"]:
@@ -196,7 +195,7 @@ def run_summarizer_pipeline(audio_file, results, counter=1):
             print(f"\nSummary for '{keyword}':\n{summary.summary_text}\n")
         except SummaryCache.DoesNotExist:
             try:
-                summary = fetch_summary_for_keyword(keyword, bart_model, bart_tokenizer)
+                summary = fetch_summary_for_keyword(keyword)
                 SummaryCache.objects.create(keyword=keyword, summary_text=summary)
                 summaries.append({'keyword': keyword, 'text': summary})
                 print(f"\nSummary for '{keyword}':\n{summary}\n")

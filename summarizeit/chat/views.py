@@ -12,15 +12,11 @@ from collections import Counter
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from rake_nltk import Rake
-from transformers import BartForConditionalGeneration, BartTokenizer as BARTTokenizer
 from main.models import SummaryCache 
 from summarizer.summarizer import (
     fetch_summary_for_keyword
 )
 
-# Load BART model and tokenizer once
-bart_model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
-bart_tokenizer = BARTTokenizer.from_pretrained('facebook/bart-large-cnn')
 NLTK_CUSTOM_PATH = os.path.join(settings.BASE_DIR, 'nltk_resources')
 
 def is_resource_available(resource_path):
@@ -112,24 +108,27 @@ def index(request):
                 summary_text = cached.summary_text
                 source = 'cache'
             else:
-                summary_text = fetch_summary_for_keyword(keyword, bart_model, bart_tokenizer)
-                if summary_text.strip() == "No summary available":
+                summary_text = fetch_summary_for_keyword(keyword)
+                if summary_text == "No summary available":
                     logger.warning("Summary not available for %s", keyword)
                     source = 'unavailable'
-
-                if summary_text!="No summary available":
+                elif isinstance(summary_text, dict) and 'summary_text' in summary_text:
+                    summary_text = summary_text['summary_text']
                     SummaryCache.objects.create(keyword=keyword, summary_text=summary_text)
-                source = 'generated'
+                    source = 'generated'
         except Exception:
             logger.exception("Summary fetch failed for %s", keyword)
             summary_text, source = None, 'error'
 
         if summary_text:
+            if isinstance(summary_text, dict) and 'summary_text' in summary_text:
+                summary_text = summary_text['summary_text']
             results.append({
                 'keyword': keyword,
                 'text': summary_text or "No summary available",
                 'source': source
             })
+
 
 
     # 4. Update Session History

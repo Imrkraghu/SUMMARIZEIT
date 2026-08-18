@@ -5,3 +5,4 @@ media/*
 nltk_resources/*
 venv/
 .venv/
+.env/
