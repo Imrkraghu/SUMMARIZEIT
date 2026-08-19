@@ -1,15 +1,10 @@
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST,  require_http_methods
-from django.http import JsonResponse,HttpResponseBadRequest
+from django.http import JsonResponse
 from django.core.cache import cache
 import time
-import threading
 import queue
-import json
-import logging
-# Import the model to ensure app registry is loaded (good practice)
-from main.models import SummaryCache 
 
 from .summarizer import (
     start_recording_thread, 

@@ -27,16 +27,29 @@ os.makedirs(NLTK_CUSTOM_PATH, exist_ok=True)
 nltk.data.path.append(NLTK_CUSTOM_PATH)
 
 
-def is_resource_available(resource_path):
+def is_resource_available(resource_path: str) -> bool:
+    """
+    Check if an NLTK resource is available.
+    """
     try:
         nltk.data.find(resource_path)
         return True
     except LookupError:
         return False
 
-for resource in ['punkt', 'stopwords', 'punkt_tab']:
-    if not is_resource_available(f'tokenizers/{resource}') and not is_resource_available(f'corpora/{resource}'):
-        nltk.download(resource, download_dir=NLTK_CUSTOM_PATH)
+def ensure_nltk_resources(resources=None):
+    """
+    Ensure required NLTK resources are available.
+    Downloads missing ones into NLTK_CUSTOM_PATH.
+    """
+    if resources is None:
+        resources = ['punkt', 'stopwords', 'punkt_tab']
+
+    for resource in resources:
+        # Check both tokenizers and corpora paths
+        if not is_resource_available(f'tokenizers/{resource}') and not is_resource_available(f'corpora/{resource}'):
+            print(f"Downloading missing resource: {resource}")
+            nltk.download(resource, download_dir=NLTK_CUSTOM_PATH)
 
 # Global threading variables
 audio_queue = queue.Queue()
@@ -120,14 +133,18 @@ def transcribe_audio(OUTPUT_FILENAME="recorded_audio_1.wav"):
 
 # Extract Keywords
 def extract_keywords_from_text(transcription_file):
+    ensure_nltk_resources()
     with open(transcription_file, "r") as file:
         text = file.read()
-    words = word_tokenize(text)
-    words = [word.lower() for word in words if word.isalnum()]
-    stop_words = set(stopwords.words("english"))
-    filtered_words = [word for word in words if word not in stop_words]
-    word_freq = Counter(filtered_words)
-    keywords = [kw for kw, _ in word_freq.most_common(10)]
+    # words = word_tokenize(text)
+    # words = [word.lower() for word in words if word.isalnum()]
+    # stop_words = set(stopwords.words("english"))
+    # filtered_words = [word for word in words if word not in stop_words]
+    # word_freq = Counter(filtered_words)
+    # keywords = [kw for kw, _ in word_freq.most_common(10)]
+    words = Rake(text)
+    words.extract_keywords_from_text(text)
+    keywords = words.get_ranked_phrases()[:10]
 
     base_name = os.path.splitext(os.path.basename(transcription_file))[0]
     keywords_file = os.path.join(settings.MEDIA_ROOT, "keywords", f"{base_name}_keywords.txt")
